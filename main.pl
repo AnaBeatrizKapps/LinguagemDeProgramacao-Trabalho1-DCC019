@@ -123,7 +123,7 @@ jogoSimplificado(N, Matriz, 1, Diff) :-
 
 jogoSimplificado(N, Matriz, 2, Diff) :-
 	writeln('IA esta `pensando`...'),
-	generate_ai_decision(2, Matriz, Diff, [X, Y, _]),
+	gera_decisao_ia_simplificada(2, Matriz, Diff, [X, Y, _]),
 	realiza_jogada(Matriz, X, Y, 2, NM),
 	visualiza_estado(N, NM),
 	testa_fim_de_jogo(N, NM),
@@ -152,7 +152,7 @@ leitura_posicao(N, Matriz, Linha, Coluna):-
 jogo(Matriz, _, _) :-
 	tab_gameover(Matriz),
 	print_tab(Matriz),
-	board_score(Matriz, S),
+	pontuacao(Matriz, S),
 	writeln(S),
 	!.
 
@@ -167,7 +167,7 @@ jogo(N, Matriz, 1, Diff) :-
 
 jogo(N, Matriz, 2, Diff) :-
 	writeln('IA esta `pensando`...'),
-	generate_ai_decision(2, Matriz, Diff, [X, Y, _]),
+	gera_decisao_ia(2, Matriz, Diff, [X, Y, _]),
 	realiza_jogada(Matriz, X, Y, 2, NM),
 	visualiza_estado(N, NM),
 	testa_fim_de_jogo(N, NM),
@@ -576,6 +576,9 @@ get_coluna_matriz([R | M], I, [C | X]) :-
 matriz_diag(M, D) :-
 	matriz_diag(M, D, 1).
 
+matriz_diag2(M, D) :-
+	matriz_diag(M, D, 2).
+
 matriz_diag([], [], _).
 
 matriz_diag([R | M], [C | D], I) :-
@@ -586,7 +589,11 @@ matriz_diag([R | M], [C | D], I) :-
 matriz_diag_dir(M, D) :-
 	dim_matriz(M, Rows, _),
 	matriz_diag_dir(M, D, Rows).
-	
+
+matriz_diag_dir2(M, D) :-
+	dim_matriz(M, Rows, _),
+	matriz_diag_dir(M, D, Rows+1).
+
 matriz_diag_dir([], [], _).
 
 matriz_diag_dir([R | M], [C | D], I) :-
@@ -690,28 +697,32 @@ tab_gameover_cond(R) :-
 	vitoria(2, V),
 	vetor_igual(R, V).
 
-/* returns the score (heuristic) of the board */
-board_score(B, Score) :-
+%heuristica
+pontuacao(B, Score) :-
 	matriz_diag(B, D),
+	matriz_diag2(B, D1),
 	matriz_diag_dir(B, D2),
-	board_rows_score(B, RowsScore),
-	board_columns_score(B, ColumnsScore),
-	board_row_score(D, DiagScore),
-	board_row_score(D2, Diag2Score),
-	Score is DiagScore + Diag2Score + RowsScore + ColumnsScore.
+	matriz_diag_dir2(B, D3),
+	pontuacao_linhas(B, RowsScore),
+	pontuacao_colunas(B, ColumnsScore),
+	pontuacao_linha(D, DiagScore),
+	pontuacao_linha(D1, Diag1Score),
+	pontuacao_linha(D2, Diag2Score),
+	pontuacao_linha(D3, Diag3Score),
+	Score is DiagScore + Diag1Score + Diag2Score + Diag3Score + RowsScore + ColumnsScore.
 	
-board_rows_score([], 0).
+pontuacao_linhas([], 0).
 	
-board_rows_score([R | M], Score) :-
-	board_row_score(R, S),
-	board_rows_score(M, SS),
+pontuacao_linhas([R | M], Score) :-
+	pontuacao_linha(R, S),
+	pontuacao_linhas(M, SS),
 	Score is SS + S.
 	
-board_columns_score(B, Score) :-
+pontuacao_colunas(B, Score) :-
 	matriz_transposta(B, M),
-	board_rows_score(M, Score).
+	pontuacao_linhas(M, Score).
 
-board_row_score(R, Score) :-
+pontuacao_linha(R, Score) :-
 	conta_vetor(R, 1, 0),
 	conta_vetor(R, 2, ScoreAI),
 	ScoreAI > 0,
@@ -719,7 +730,7 @@ board_row_score(R, Score) :-
 	pow(10, Exponent, Score),
 	!.
 
-board_row_score(R, Score) :-
+pontuacao_linha(R, Score) :-
 	conta_vetor(R, 2, 0),
 	conta_vetor(R, 1, ScoreHuman),
 	ScoreHuman > 0,
@@ -728,83 +739,116 @@ board_row_score(R, Score) :-
 	Score is -S,
 	!.
 
-board_row_score(_, 0).
+pontuacao_linha(_, 0).
 
-/* returns a list of possible moves */
-board_free_cells(B, C) :-
+celulas_livre_tab_simplificada(B, C) :-
 	dim_matriz(B, Rows, Columns),
-	board_free_cells(B, Rows, Columns, C).
-	
-board_free_cells(_, 0, _, []) :-
-	!.
+	celulas_livre_tab_simplificada(B, Rows, Columns, C).
 
-board_free_cells(Board, RowIndex, 0, Cells) :-
-	dim_matriz(Board, _, Columns),
-	NRowIndex is RowIndex - 1,
-	board_free_cells(Board, NRowIndex, Columns, Cells).
+celulas_livre_tab_simplificada(_, _ , 0, []) :- !.
 
-board_free_cells(Board, RowIndex, ColumnIndex, [[RowIndex, ColumnIndex] | Rest]) :-
+celulas_livre_tab_simplificada(Board, 0, ColumnIndex, Cells) :-
+	NColumnIndex is ColumnIndex - 1,
+	dim_matriz(Board, Rows, _),
+	celulas_livre_tab_simplificada(Board, Rows, NColumnIndex, Cells), !.
+
+celulas_livre_tab_simplificada(Board, RowIndex, ColumnIndex, [[RowIndex, ColumnIndex] | Rest]) :-
 	get_linha_matriz(Board, RowIndex, Row),
 	get_vetor(Row, ColumnIndex, 0),
 	NColumnIndex is ColumnIndex - 1,
-	board_free_cells(Board, RowIndex, NColumnIndex, Rest),
+	dim_matriz(Board, Rows, _),
+	celulas_livre_tab_simplificada(Board, Rows, NColumnIndex, Rest), !.	
+
+celulas_livre_tab_simplificada(Board, RowIndex, ColumnIndex, Cells) :-
+	NRowIndex is RowIndex - 1,
+	celulas_livre_tab_simplificada(Board, NRowIndex, ColumnIndex, Cells),
 	!.
+
+%retorna a lista de células livres no jogo normal
+celulas_livre_tab(B, C) :-
+	dim_matriz(B, Rows, Columns),
+	celulas_livre_tab(B, Rows, Columns, C).
 	
-board_free_cells(Board, RowIndex, ColumnIndex, Cells) :-
-	/* we know that cell != 0 */
+celulas_livre_tab(_, 0, _, []) :-
+	!.
+
+celulas_livre_tab(Board, RowIndex, 0, Cells) :-
+	dim_matriz(Board, _, Columns),
+	NRowIndex is RowIndex - 1,
+	celulas_livre_tab(Board, NRowIndex, Columns, Cells).
+
+celulas_livre_tab(Board, RowIndex, ColumnIndex, [[RowIndex, ColumnIndex] | Rest]) :-
+	get_linha_matriz(Board, RowIndex, Row),
+	get_vetor(Row, ColumnIndex, 0),
 	NColumnIndex is ColumnIndex - 1,
-	board_free_cells(Board, RowIndex, NColumnIndex, Cells),
+	celulas_livre_tab(Board, RowIndex, NColumnIndex, Rest),
 	!.
 	
-generate_ai_decision_max([[X, Y, Score]], [X, Y, Score]).
+celulas_livre_tab(Board, RowIndex, ColumnIndex, Cells) :-
+	NColumnIndex is ColumnIndex - 1,
+	celulas_livre_tab(Board, RowIndex, NColumnIndex, Cells),
+	!.
 	
-generate_ai_decision_max([[_, _, Score] | Scores], Max) :-
-	generate_ai_decision_max(Scores, [Xm, Ym, ScoreM]),
+gera_decisao_ia_max([[X, Y, Score]], [X, Y, Score]).
+	
+gera_decisao_ia_max([[_, _, Score] | Scores], Max) :-
+	gera_decisao_ia_max(Scores, [Xm, Ym, ScoreM]),
 	ScoreM > Score,
 	Max = [Xm, Ym, ScoreM],
 	!.
 	
-generate_ai_decision_max([[X, Y, Score] | Scores], Max) :-
-	generate_ai_decision_max(Scores, [_, _, _]),
+gera_decisao_ia_max([[X, Y, Score] | Scores], Max) :-
+	gera_decisao_ia_max(Scores, [_, _, _]),
 	Max = [X, Y, Score].	
 	
-generate_ai_decision_min([[X, Y, Score]], [X, Y, Score]).
+gera_decisao_ia_min([[X, Y, Score]], [X, Y, Score]).
 	
-generate_ai_decision_min([[_, _, Score] | Scores], Min) :-
-	generate_ai_decision_min(Scores, [Xm, Ym, ScoreM]),
+gera_decisao_ia_min([[_, _, Score] | Scores], Min) :-
+	gera_decisao_ia_min(Scores, [Xm, Ym, ScoreM]),
 	ScoreM < Score,
 	Min = [Xm, Ym, ScoreM],
 	!.
 	
-generate_ai_decision_min([[X, Y, Score] | Scores], Min) :-
-	generate_ai_decision_min(Scores, [_, _, _]),
+gera_decisao_ia_min([[X, Y, Score] | Scores], Min) :-
+	gera_decisao_ia_min(Scores, [_, _, _]),
 	Min = [X, Y, Score].
 
-generate_ai_decision(_, B, 0, [0, 0, S]) :-
-	board_score(B, S),
+gera_decisao_ia(_, B, 0, [0, 0, S]) :-
+	pontuacao(B, S),
 	!.
 
-generate_ai_decision(_, B, _, [0, 0, S]) :-
+gera_decisao_ia(_, B, _, [0, 0, S]) :-
 	tab_gameover(B),
-	board_score(B, S),
+	pontuacao(B, S),
 	!.
 	
-generate_ai_decision(2, B, Depth, Decision) :-
-	board_free_cells(B, Cells),
-	generate_ai_decision_recursion(2, B, Depth, Cells, Scores),
-	generate_ai_decision_max(Scores, Decision),
+gera_decisao_ia(2, B, Depth, Decision) :-
+	celulas_livre_tab(B, Cells),
+	gera_decisao_ia_rec(2, B, Depth, Cells, Scores),
+	gera_decisao_ia_max(Scores, Decision),
 	!.
 
-generate_ai_decision(1, B, Depth, Decision) :-
-	board_free_cells(B, Cells),
-	generate_ai_decision_recursion(1, B, Depth, Cells, Scores),
-	generate_ai_decision_min(Scores, Decision).
+gera_decisao_ia(1, B, Depth, Decision) :-
+	celulas_livre_tab(B, Cells),
+	gera_decisao_ia_rec(1, B, Depth, Cells, Scores),
+	gera_decisao_ia_min(Scores, Decision).
+
+gera_decisao_ia_simplificada(2, B, Depth, Decision) :-
+	celulas_livre_tab_simplificada(B, Cells),
+	gera_decisao_ia_rec(2, B, Depth, Cells, Scores),
+	gera_decisao_ia_max(Scores, Decision),
+	!.
+
+gera_decisao_ia_simplificada(1, B, Depth, Decision) :-
+	celulas_livre_tab_simplificada(B, Cells),
+	gera_decisao_ia_rec(1, B, Depth, Cells, Scores),
+	gera_decisao_ia_min(Scores, Decision).
 	
-generate_ai_decision_recursion(_, _, _, [], []).
+gera_decisao_ia_rec(_, _, _, [], []).
 	
-generate_ai_decision_recursion(Turn, B, Depth, [[X, Y] | T], [[X, Y, Decision] | Scores]) :-
+gera_decisao_ia_rec(Turn, B, Depth, [[X, Y] | T], [[X, Y, Decision] | Scores]) :-
 	D is Depth - 1,
 	tab_faz_mov(B, X, Y, Turn, NB),
 	tab_prox_jogada(Turn, NextTurn),
-	generate_ai_decision(NextTurn, NB, D, [_, _, Decision]),
-	generate_ai_decision_recursion(Turn, B, Depth, T, Scores).
+	gera_decisao_ia(NextTurn, NB, D, [_, _, Decision]),
+	gera_decisao_ia_rec(Turn, B, Depth, T, Scores).
