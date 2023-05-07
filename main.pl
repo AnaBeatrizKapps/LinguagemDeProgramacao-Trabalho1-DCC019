@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%% AUTORES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Ana Beatriz Kapps dos Reis - Matricula: 201835006
-% Rosa M. Ottoni Fernandes  - Matricula: -----
+% Rosa M. Ottoni Fernandes  - Matricula: 202035506
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%  ESTADO INICIAL  %%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -115,11 +115,18 @@ escreve(2):-write(' O |').
 
 %Execucao do jogo simplificado
 
-jogoSimplificado(N, Matriz, 1, Diff) :-
+leitura_posicao_simplificada(N,Matriz,Coluna) :- 
+	repeat,
 	writeln('Insira o numero da coluna que deseja jogar: '),
 	read(Move),
-	%X - Linha e Y - Coluna
-	Y = Move,                                      
+	Coluna = Move,
+	%Coluna escolhida deve estar dentro o intervalo das dimensoes da matriz
+	(Coluna>0, Coluna=<N+1),
+	%Posicao correspondente a linha e coluna escolhida deve estar vazia   
+	get_posicao(Matriz, 1, Coluna, Elemento), Elemento=0, !.
+
+jogoSimplificado(N, Matriz, 1, Diff) :-
+	leitura_posicao_simplificada(N, Matriz, Y),                                      
 	realiza_jogada_versao_simplificada(N, Matriz, Y, 1, Matriz1),
     visualiza_estado(N, Matriz1),
 	testa_fim_de_jogo(N, Matriz1),
@@ -295,15 +302,6 @@ n_consecutivos(X, [X | T], N) :-
     n_consecutivos(X, T, N1), 
     N is N1 + 1.
 n_consecutivos(X, [_ | T], 0) :- n_consecutivos(X, T, 0).
-
-/*n_consecutivos_lista(_, [], 0).
-n_consecutivos_lista(X, L, N) :-
-    append(_, Suffix, L),
-    append(Prefix, [X | _], Suffix),
-    length(Prefix, M),
-    n_consecutivos(X, Prefix, M1),
-    N is max(M1, M),
-    N >= N.*/ %Não vi necessidade desse predicado
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LINHA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
