@@ -1,3 +1,8 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%% AUTORES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Ana Beatriz Kapps dos Reis - Matricula: 201835006
+% Rosa M. Ottoni Fernandes  - Matricula: -----
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%  ESTADO INICIAL  %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Insere um valor no inicio da lista
